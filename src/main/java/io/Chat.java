@@ -14,5 +14,4 @@ public class Chat extends Application {
         primaryStage.setScene(new Scene(parent));
         primaryStage.show();
     }
-
 }

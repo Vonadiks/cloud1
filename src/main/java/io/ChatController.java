@@ -42,8 +42,6 @@ public class ChatController implements Initializable {
             os.writeObject(new ListRequest());
             os.flush();
 
-
-
             Thread readThread = new Thread(() -> {
                 try {
                     while (true) {
