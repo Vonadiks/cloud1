@@ -8,9 +8,7 @@ import java.net.Socket;
 
 @Slf4j
 public class Server {
-
     public static void main(String[] args) throws IOException {
-
         ServerSocket server = new ServerSocket(8189);
         log.debug("Server started");
         while (true) {
