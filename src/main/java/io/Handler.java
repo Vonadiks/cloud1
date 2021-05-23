@@ -1,10 +1,11 @@
 package io;
 
-import java.io.Closeable;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 public class Handler implements Runnable, Closeable {
 
     private final Socket socket;
+    private String serverDir = "serverDir/";
 
     public Handler(Socket socket) {
         this.socket = socket;
@@ -19,16 +21,34 @@ public class Handler implements Runnable, Closeable {
 
     @Override
     public void run() {
-        try (DataInputStream is = new DataInputStream(socket.getInputStream());
-             DataOutputStream os = new DataOutputStream(socket.getOutputStream())) {
+        try (ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
+            ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream())) {
             while (true) {
-                String msg = is.readUTF();
-                log.debug("received: {}", msg);
-                os.writeUTF(msg);
+                Message msg = (Message) is.readObject();
+                switch (msg.getType()){
+                    case FILE:
+                        handleFileMessage(msg);
+                        break;
+//                    case LIST:
+//                        break;
+                    case LIST_REQUEST:
+                        List<String> files = Files.list(Paths.get(serverDir)).
+                            map(p -> p.getFileName().toString()).collect(Collectors.toList());
+                        os.writeObject(new ListMessage(files));
+                        os.flush();
+                        break;
+                }
+//                log.debug("received: {}", msg);
+//                os.writeUTF(msg);
             }
         } catch (Exception e) {
             log.error("e=", e);
         }
+    }
+
+    private void handleFileMessage(Message msg) throws Exception{
+        FileObject file = (FileObject) msg;
+        Files.write(Paths.get(serverDir + file.getName()), file.getData());
     }
 
     @Override

@@ -1,10 +1,9 @@
 package io;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ResourceBundle;
 
 import javafx.application.Platform;
@@ -19,13 +18,18 @@ public class ChatController implements Initializable {
 
     public TextField input;
     public ListView<String> listView;
+    private String clientDir = "clientDir/";
 
-    private DataInputStream is;
-    private DataOutputStream os;
+    private ObjectInputStream is;
+    private ObjectOutputStream os;
 
     public void send(ActionEvent actionEvent) throws IOException {
-        os.writeUTF(input.getText());
+        String fileName = input.getText();
+        FileObject file = new FileObject(Paths.get(clientDir, fileName));
+
+        os.writeObject(file);
         os.flush();
+        os.writeObject(new ListRequest());
         input.clear();
     }
 
@@ -33,14 +37,30 @@ public class ChatController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         try {
             Socket socket = new Socket("localhost", 8189);
-            is = new DataInputStream(socket.getInputStream());
-            os = new DataOutputStream(socket.getOutputStream());
+            os = new ObjectOutputStream(socket.getOutputStream());
+            is = new ObjectInputStream(socket.getInputStream());
+            os.writeObject(new ListRequest());
+            os.flush();
+
+
 
             Thread readThread = new Thread(() -> {
                 try {
                     while (true) {
-                        String msg = is.readUTF();
-                        Platform.runLater(() -> listView.getItems().add(msg));
+                      Message message = (Message) is.readObject();
+                      switch (message.getType()){
+                          case LIST:
+                              ListMessage list = (ListMessage) message;
+                              list.getFiles();
+                              Platform.runLater(() -> {
+                                          listView.getItems().clear();
+                                          listView.getItems()
+                                                  .addAll(list.getFiles());
+                                  });
+
+                              break;
+                      }
+
                     }
                 } catch (Exception e) {
                     log.error("e=", e);
