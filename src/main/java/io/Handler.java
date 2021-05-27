@@ -29,8 +29,6 @@ public class Handler implements Runnable, Closeable {
                     case FILE:
                         handleFileMessage(msg);
                         break;
-//                    case LIST:
-//                        break;
                     case LIST_REQUEST:
                         List<String> files = Files.list(Paths.get(serverDir)).
                             map(p -> p.getFileName().toString()).collect(Collectors.toList());
@@ -38,8 +36,6 @@ public class Handler implements Runnable, Closeable {
                         os.flush();
                         break;
                 }
-//                log.debug("received: {}", msg);
-//                os.writeUTF(msg);
             }
         } catch (Exception e) {
             log.error("e=", e);
